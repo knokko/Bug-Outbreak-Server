@@ -27,8 +27,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import nl.knokko.bo.server.auth.data.AuthDataManager;
 import nl.knokko.util.random.CrazyRandom;

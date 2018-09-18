@@ -70,7 +70,7 @@ public class EntitySkeleton {
 		public static Part load1(BitInput input, int ownIndex) throws InvalidModelException {
 			byte ordinal = input.readByte();
                         byte parentIndex = input.readByte();
-                        if(parentIndex == ownIndex) throw new InvalidModelException("parentIndex and ownIndex are equal (" + parentIndex + ")");
+                        if(parentIndex >= ownIndex) throw new InvalidModelException("parentIndex (" + parentIndex + ") must be smaller than ownIndex (" + ownIndex + ")");
                         if(parentIndex < -1) throw new InvalidModelException("parentIndex (" + parentIndex + ") is smaller than -1");
 			if(ordinal <= 0) throw new InvalidModelException("Negative animation ordinal: " + ordinal);
 			AnimationType[] values = AnimationType.values();

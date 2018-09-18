@@ -42,20 +42,25 @@ public class ProtocolAddModel implements BitProtocol<ProfileWebServer.Handler> {
             String name = input.readJavaString(100);
             UserData data = ProfileServer.getDataManager().getUserData(handler.getState().getUserID());
             synchronized(data){
-                if(data.getModel(name) == null){
-                    try {
-                        EntityModel model = new EntityModel(input);
-                        long time = System.currentTimeMillis();
-                        data.addModel(new ProfileEntityModel(model, name, time, time));
-                        BitOutput output = handler.createOutput();
-                        output.addNumber(StC.ADDED_MODEL, StC.BITCOUNT, false);
-                        output.terminate();
-                    } catch(InvalidModelException ime){
-                        handler.uglyStop("Tried to upload invalid model");
+                if(data.getModelAmount() < UserData.MAX_MODELS){
+                    if(data.getModel(name) == null){
+                        try {
+                            EntityModel model = new EntityModel(input);
+                            long time = System.currentTimeMillis();
+                            data.addModel(new ProfileEntityModel(model, name, time, time));
+                            BitOutput output = handler.createOutput();
+                            output.addNumber(StC.ADDED_MODEL, StC.BITCOUNT, false);
+                            output.terminate();
+                        } catch(InvalidModelException ime){
+                            handler.uglyStop("Tried to upload invalid model");
+                        }
+                    }
+                    else {
+                        handler.uglyStop("Tried to upload a model with the name of an existing model");
                     }
                 }
                 else {
-                    handler.uglyStop("Tried to upload a model with the name of an existing model");
+                    handler.uglyStop("Tried to exceed the maximum amount of models per user.");
                 }
             }
         }

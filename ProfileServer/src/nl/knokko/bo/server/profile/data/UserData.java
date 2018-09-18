@@ -83,6 +83,10 @@ public class UserData {
         return models;
     }
     
+    public int getModelAmount(){
+        return models.length;
+    }
+    
     public synchronized boolean deleteModel(String name){
         for(int index = 0; index < models.length; index++){
             if(models[index].getName().equals(name)){
