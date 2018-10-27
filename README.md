@@ -57,6 +57,8 @@ The complete list of dependencies are:
 
 -JavaWebSocket (github.com/TooTallNate/Java-WebSocket)
 
+-Simple Logging Facade for Java (https://www.slf4j.org/) (Configure it however you like)
+
 Dependencies of AuthServer:
 
 -AuthProfileProtocol
@@ -72,6 +74,8 @@ Dependencies of AuthServer:
 -Random
 
 -TCPServer
+
+-Simple Logging Facade for Java
 
 Dependencies of ProfileServer:
 
@@ -90,6 +94,8 @@ Dependencies of ProfileServer:
 -Random
 
 -TCPClient
+
+-Simple Logging Facade for Java
 
 Dependencies of EntityModels:
 
