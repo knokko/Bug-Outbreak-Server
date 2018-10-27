@@ -26,7 +26,6 @@ package nl.knokko.bo.server.auth;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 
 import nl.knokko.bo.server.auth.protocol.web.WebAuthProtocol;
 import nl.knokko.util.bits.BitInput;
