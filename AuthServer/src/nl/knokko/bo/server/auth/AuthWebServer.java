@@ -1,15 +1,15 @@
-/* 
+/*******************************************************************************
  * The MIT License
  *
- * Copyright 2018 20182191.
+ * Copyright (c) 2018 knokko
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
+ *  of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- *
+ *  
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
  *
@@ -20,7 +20,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
- */
+ *******************************************************************************/
 package nl.knokko.bo.server.auth;
 
 import java.net.InetAddress;
@@ -38,7 +38,7 @@ import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 
 public class AuthWebServer extends WebSocketServer {
-	
+
 	private static final WebAuthProtocol PROTOCOL = new WebAuthProtocol();
 
 	public AuthWebServer(String host, int port) {
@@ -47,18 +47,18 @@ public class AuthWebServer extends WebSocketServer {
 
 	@Override
 	public void onOpen(WebSocket conn, ClientHandshake handshake) {
-            if(AuthServer.getDataManager().getIPData(conn.getRemoteSocketAddress().getAddress()).getFailedLoginAttempts() >= 100){
-		conn.closeConnection(1002, "Too many failed attempts");
-            }
-            else {
-		conn.setAttachment(new Handler(conn));
-            }
+		if (AuthServer.getDataManager().getIPData(conn.getRemoteSocketAddress().getAddress())
+				.getFailedLoginAttempts() >= 100) {
+			conn.closeConnection(1002, "Too many failed attempts");
+		} else {
+			conn.setAttachment(new Handler(conn));
+		}
 	}
 
 	@Override
 	public void onClose(WebSocket conn, int code, String reason, boolean remote) {
 		Handler handler = conn.getAttachment();
-		if(handler.getState().isLoggedIn()){
+		if (handler.getState().isLoggedIn()) {
 			AuthServer.getDataManager().getUserData(handler.getState().getAccountID()).setLoggedOut();
 		}
 	}
@@ -68,17 +68,18 @@ public class AuthWebServer extends WebSocketServer {
 		System.out.println("Received string message?");
 		conn.close();
 	}
-	
+
 	@Override
-	public void onMessage(WebSocket conn, ByteBuffer message){
+	public void onMessage(WebSocket conn, ByteBuffer message) {
 		byte[] bytes = new byte[message.capacity()];
 		message.get(bytes);
 		BitInput input = new ByteArrayBitInput(bytes);
 		Handler handler = conn.getAttachment();
 		try {
 			PROTOCOL.process(input, handler);
-		} catch(Exception ex){
-			handler.uglyStop("An exception was thrown: " + ex.getMessage());//printing the exception could result in spam attacks
+		} catch (Exception ex) {
+			handler.uglyStop("An exception was thrown: " + ex.getMessage());// printing the exception could result in
+																			// spam attacks
 		}
 	}
 
@@ -91,114 +92,116 @@ public class AuthWebServer extends WebSocketServer {
 	public void onStart() {
 		System.out.println("Started web server at port " + getPort());
 	}
-	
+
 	public static class Handler {
-		
+
 		private final WebSocket ws;
-		
+
 		private final State state;
-		
-		public Handler(WebSocket ws){
+
+		public Handler(WebSocket ws) {
 			this.ws = ws;
 			state = new State();
 		}
-		
-		public State getState(){
+
+		public State getState() {
 			return state;
 		}
-		
-		public void uglyStop(String reason){
+
+		public void uglyStop(String reason) {
 			ws.closeConnection(1002, reason);
 		}
-		
-		public InetAddress getAddress(){
+
+		public InetAddress getAddress() {
 			return ws.getRemoteSocketAddress().getAddress();
 		}
-		
-		public boolean isConnected(){
+
+		public boolean isConnected() {
 			return ws.isOpen();
 		}
-		
-		public BitOutput createOutput(){
+
+		public BitOutput createOutput() {
 			return new Output();
 		}
-		
+
 		private class Output extends ByteArrayBitOutput {
-			
+
 			@Override
-			public void terminate(){
+			public void terminate() {
 				ws.send(getBytes());
 			}
 		}
 	}
-	
+
 	public static class State {
-		
+
 		public static final byte AUTH_STATE_NOTHING = 0;
 		public static final byte AUTH_STATE_LOGGING_IN = 1;
 		public static final byte AUTH_STATE_LOGGED_IN = 2;
-		
+
 		public static final byte ACTION_STATE_NOTHING = 0;
 		public static final byte ACTION_STATE_PROFILE_LOGIN = 1;
-		
+
 		private byte authState = AUTH_STATE_NOTHING;
 		private byte actionState = ACTION_STATE_NOTHING;
-		
+
 		private int[] tempLoginHasher;
 		private int[] profileLoginKey;
-		
+
 		private long accountID = -1;
-		
-		public byte getAuthState(){
+
+		public byte getAuthState() {
 			return authState;
 		}
-		
-		public byte getActionState(){
+
+		public byte getActionState() {
 			return actionState;
 		}
-		
-		public boolean isLoggedIn(){
+
+		public boolean isLoggedIn() {
 			return authState == AUTH_STATE_LOGGED_IN;
 		}
-		
-		public void clearAuthState(){
+
+		public void clearAuthState() {
 			authState = AUTH_STATE_NOTHING;
 			tempLoginHasher = null;
 			accountID = -1;
 		}
-		
-		public void setLoggingIn(long id, int[] hasher){
+
+		public void setLoggingIn(long id, int[] hasher) {
 			authState = AUTH_STATE_LOGGING_IN;
 			accountID = id;
 			tempLoginHasher = hasher;
 		}
-		
-		public void setLoggedIn(){
+
+		public void setLoggedIn() {
 			authState = AUTH_STATE_LOGGED_IN;
 			tempLoginHasher = null;
 		}
-		
-		public void setRegistered(long id){
+
+		public void setRegistered(long id) {
 			authState = AUTH_STATE_LOGGED_IN;
 			accountID = id;
 		}
-		
-		public int[] getTempHasher(){
+
+		public int[] getTempHasher() {
 			return tempLoginHasher;
 		}
-		
-		public long getAccountID(){
+
+		public long getAccountID() {
 			return accountID;
 		}
-		
-		public void setProfileLoginKey(int[] loginKey){
-			if(actionState != ACTION_STATE_NOTHING) throw new IllegalStateException("Another action is being performed now");
+
+		public void setProfileLoginKey(int[] loginKey) {
+			if (actionState != ACTION_STATE_NOTHING)
+				throw new IllegalStateException("Another action is being performed now");
 			profileLoginKey = loginKey;
 			actionState = ACTION_STATE_PROFILE_LOGIN;
 		}
-		
-		public int[] getProfileLoginKey(){
-			if(actionState != ACTION_STATE_PROFILE_LOGIN) throw new IllegalStateException("This handler is not attempting a profile login");
+
+		public int[] getProfileLoginKey() {
+			if (actionState != ACTION_STATE_PROFILE_LOGIN)
+				throw new IllegalStateException("This handler is not attempting a profile login");
 			int[] key = profileLoginKey;
 			profileLoginKey = null;
 			actionState = ACTION_STATE_NOTHING;

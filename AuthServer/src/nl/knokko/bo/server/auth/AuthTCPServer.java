@@ -1,15 +1,15 @@
-/* 
+/*******************************************************************************
  * The MIT License
  *
- * Copyright 2018 20182191.
+ * Copyright (c) 2018 knokko
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
+ *  of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- *
+ *  
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
  *
@@ -20,7 +20,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
- */
+ *******************************************************************************/
 package nl.knokko.bo.server.auth;
 
 import java.io.IOException;
@@ -38,9 +38,9 @@ import nl.knokko.bo.server.protocol.AuthProfileCode.StC;
 import nl.knokko.bo.server.auth.protocol.web.ConnectionCode;
 
 public class AuthTCPServer extends TCPServerSocket<State> {
-	
+
 	private final Speaker speaker;
-	
+
 	public AuthTCPServer() {
 		super(new TCPAuthProtocol());
 		speaker = new Speaker();
@@ -53,8 +53,10 @@ public class AuthTCPServer extends TCPServerSocket<State> {
 
 	@Override
 	protected boolean shouldAccept(byte[] clientAddress) {
-		if(AuthServer.getDataManager().getRealm(clientAddress) != null) return true;
-		return AuthServer.getDataManager().getProfileServer() != null && Arrays.equals(AuthServer.getDataManager().getProfileServer().getIP(), clientAddress);
+		if (AuthServer.getDataManager().getRealm(clientAddress) != null)
+			return true;
+		return AuthServer.getDataManager().getProfileServer() != null
+				&& Arrays.equals(AuthServer.getDataManager().getProfileServer().getIP(), clientAddress);
 	}
 
 	@Override
@@ -79,70 +81,75 @@ public class AuthTCPServer extends TCPServerSocket<State> {
 
 	@Override
 	protected void onHandlerError(Handler handler, IOException ioex) {
-		AuthServer.getConsole().println("An IO error occured with " + handler.getClient().getInetAddress() + ": " + ioex.getMessage());
+		AuthServer.getConsole()
+				.println("An IO error occured with " + handler.getClient().getInetAddress() + ": " + ioex.getMessage());
 	}
 
 	@Override
 	protected void onHandlerClose(Handler handler) {
 		AuthServer.getConsole().println("Closed connection with " + handler.getClient().getInetAddress());
-		if(handler.getState().getState() == State.STATE_PROFILE_LOGGED_IN){
+		if (handler.getState().getState() == State.STATE_PROFILE_LOGGED_IN) {
 			speaker.clearProfileHandler();
 			AuthServer.getDataManager().getProfileServer().setOffline();
 		}
-		if(handler.getState().getState() == State.STATE_REALM_LOGGED_IN){
+		if (handler.getState().getState() == State.STATE_REALM_LOGGED_IN) {
 			AuthServer.getDataManager().setRealmOffline(handler.getState().getRealm());
 		}
 	}
-	
-	public Speaker getSpeaker(){
+
+	public Speaker getSpeaker() {
 		return speaker;
 	}
-	
+
 	public class Speaker {
-		
+
 		private Handler profileHandler;
-		
+
 		private final Collection<AuthWebServer.Handler> profileLoginRequests;
-		
+
 		private final Object profileHandlerLock;
-		
-		private Speaker(){
+
+		private Speaker() {
 			profileLoginRequests = new ArrayList<AuthWebServer.Handler>();
 			profileHandlerLock = new Object();
 		}
-		
-		public Object getProfileHandlerLock(){
+
+		public Object getProfileHandlerLock() {
 			return profileHandlerLock;
 		}
-		
-		public void setProfileHandler(Handler handler){
-			synchronized(profileHandlerLock){
-				if(profileHandler != null) throw new IllegalStateException("profile handler is already set");
+
+		public void setProfileHandler(Handler handler) {
+			synchronized (profileHandlerLock) {
+				if (profileHandler != null)
+					throw new IllegalStateException("profile handler is already set");
 				profileHandler = handler;
 			}
 		}
-		
-		public Handler getProfileHandler(){
-			synchronized(profileHandlerLock){
+
+		public Handler getProfileHandler() {
+			synchronized (profileHandlerLock) {
 				return profileHandler;
 			}
 		}
-		
-		private void clearProfileHandler(){
-			synchronized(profileHandlerLock){
-				if(profileHandler == null) throw new IllegalStateException("Profile handler is not set");
+
+		private void clearProfileHandler() {
+			synchronized (profileHandlerLock) {
+				if (profileHandler == null)
+					throw new IllegalStateException("Profile handler is not set");
 				profileHandler = null;
 			}
 		}
-		
-		public void requestProfileLogin(AuthWebServer.Handler handler){
+
+		public void requestProfileLogin(AuthWebServer.Handler handler) {
 			BitOutput output;
-			synchronized(profileHandlerLock){
-				if(profileHandler == null) throw new IllegalStateException("No profile handler");
+			synchronized (profileHandlerLock) {
+				if (profileHandler == null)
+					throw new IllegalStateException("No profile handler");
 				output = profileHandler.createOutput();
 			}
-			synchronized(profileLoginRequests){
-				if(profileLoginRequests.contains(handler)) throw new IllegalStateException("Handler (" + handler + ")is already requesting profile login");
+			synchronized (profileLoginRequests) {
+				if (profileLoginRequests.contains(handler))
+					throw new IllegalStateException("Handler (" + handler + ")is already requesting profile login");
 				profileLoginRequests.add(handler);
 			}
 			output.addNumber(StC.ALLOW_LOGIN, StC.BITCOUNT, false);
@@ -153,23 +160,23 @@ public class AuthTCPServer extends TCPServerSocket<State> {
 			handler.getState().setProfileLoginKey(loginKey);
 			output.terminate();
 		}
-		
-		public AuthWebServer.Handler approveProfileLogin(long id){
+
+		public AuthWebServer.Handler approveProfileLogin(long id) {
 			AuthWebServer.Handler handler = null;
-			synchronized(profileLoginRequests){
+			synchronized (profileLoginRequests) {
 				Iterator<AuthWebServer.Handler> iterator = profileLoginRequests.iterator();
-				while(iterator.hasNext()){
+				while (iterator.hasNext()) {
 					AuthWebServer.Handler next = iterator.next();
-					if(next.getState().getAccountID() == id){
+					if (next.getState().getAccountID() == id) {
 						handler = next;
 						iterator.remove();
 						break;
 					}
 				}
 			}
-			if(handler != null && handler.isConnected() && handler.getState().isLoggedIn()){
-				synchronized(profileHandlerLock){
-					if(profileHandlerLock != null){
+			if (handler != null && handler.isConnected() && handler.getState().isLoggedIn()) {
+				synchronized (profileHandlerLock) {
+					if (profileHandlerLock != null) {
 						int[] key = handler.getState().getProfileLoginKey();
 						BitOutput output = handler.createOutput();
 						output.addNumber(ConnectionCode.StC.PROFILE_LOGIN, ConnectionCode.StC.BITCOUNT, false);
@@ -177,39 +184,39 @@ public class AuthTCPServer extends TCPServerSocket<State> {
 						output.addChar((char) AuthServer.getDataManager().getProfileServer().getPort());
 						output.addInts(key);
 						output.terminate();
-                                                System.out.println("The client should get enough information to perform a profile login");
-                                                System.out.println("Profile server port is " + profileHandler.getClient().getPort() + " or " + AuthServer.getDataManager().getProfileServer().getPort());
-					}
-					else {
+						System.out.println("The client should get enough information to perform a profile login");
+						System.out.println("Profile server port is " + profileHandler.getClient().getPort() + " or "
+								+ AuthServer.getDataManager().getProfileServer().getPort());
+					} else {
 						BitOutput output = handler.createOutput();
 						output.addNumber(ConnectionCode.StC.PROFILE_LOGIN_FAILED, ConnectionCode.StC.BITCOUNT, false);
-						output.addNumber(ConnectionCode.StC.ProfileFail.SERVER_DOWN, ConnectionCode.StC.ProfileFail.BITCOUNT, false);
+						output.addNumber(ConnectionCode.StC.ProfileFail.SERVER_DOWN,
+								ConnectionCode.StC.ProfileFail.BITCOUNT, false);
 						output.terminate();
 					}
 				}
+			} else {
+				System.out.println("Handler isn't ready to log in to the profile server");
 			}
-                        else {
-                            System.out.println("Handler isn't ready to log in to the profile server");
-                        }
 			return handler;
 		}
-		
-		public AuthWebServer.Handler refuseProfileLogin(long id, long reason){
+
+		public AuthWebServer.Handler refuseProfileLogin(long id, long reason) {
 			AuthWebServer.Handler handler = null;
-			synchronized(profileLoginRequests){
+			synchronized (profileLoginRequests) {
 				Iterator<AuthWebServer.Handler> iterator = profileLoginRequests.iterator();
-				while(iterator.hasNext()){
+				while (iterator.hasNext()) {
 					AuthWebServer.Handler next = iterator.next();
-					if(next.getState().getAccountID() == id){
+					if (next.getState().getAccountID() == id) {
 						handler = next;
 						iterator.remove();
 						break;
 					}
 				}
 			}
-			if(handler != null && handler.isConnected() && handler.getState().isLoggedIn()){
-				synchronized(profileHandlerLock){
-					if(profileHandlerLock != null){
+			if (handler != null && handler.isConnected() && handler.getState().isLoggedIn()) {
+				synchronized (profileHandlerLock) {
+					if (profileHandlerLock != null) {
 						int[] key = handler.getState().getProfileLoginKey();
 						BitOutput output = handler.createOutput();
 						output.addNumber(ConnectionCode.StC.PROFILE_LOGIN, ConnectionCode.StC.BITCOUNT, false);
@@ -217,15 +224,16 @@ public class AuthTCPServer extends TCPServerSocket<State> {
 						output.addChar((char) profileHandler.getClient().getPort());
 						output.addInts(key);
 						output.terminate();
-					}
-					else {
+					} else {
 						BitOutput output = handler.createOutput();
 						output.addNumber(ConnectionCode.StC.PROFILE_LOGIN_FAILED, ConnectionCode.StC.BITCOUNT, false);
-						if(reason == CtS.RefuseLogin.ALREADY_LOGGED_IN)
-							output.addNumber(ConnectionCode.StC.ProfileFail.ALREADY_LOGGED_IN, ConnectionCode.StC.ProfileFail.BITCOUNT, false);
+						if (reason == CtS.RefuseLogin.ALREADY_LOGGED_IN)
+							output.addNumber(ConnectionCode.StC.ProfileFail.ALREADY_LOGGED_IN,
+									ConnectionCode.StC.ProfileFail.BITCOUNT, false);
 						else {
 							profileHandler.stop("Unknown reason to refuse client profile login: " + reason);
-							output.addNumber(ConnectionCode.StC.ProfileFail.SERVER_DOWN, ConnectionCode.StC.ProfileFail.BITCOUNT, false);
+							output.addNumber(ConnectionCode.StC.ProfileFail.SERVER_DOWN,
+									ConnectionCode.StC.ProfileFail.BITCOUNT, false);
 						}
 						output.terminate();
 					}
@@ -234,50 +242,50 @@ public class AuthTCPServer extends TCPServerSocket<State> {
 			return handler;
 		}
 	}
-	
+
 	public static class State {
-		
+
 		public static final byte STATE_DEFAULT = 0;
 		public static final byte STATE_REALM_LOGGING_IN = 1;
 		public static final byte STATE_REALM_LOGGED_IN = 2;
 		public static final byte STATE_PROFILE_LOGGING_IN = 3;
 		public static final byte STATE_PROFILE_LOGGED_IN = 4;
-		
+
 		private byte state;
-		
+
 		private int[] tempHasher;
-		
+
 		private String realmName;
-		
-		public State(){
+
+		public State() {
 			state = STATE_DEFAULT;
 		}
-		
-		public byte getState(){
+
+		public byte getState() {
 			return state;
 		}
-		
-		public void setState(byte newState){
+
+		public void setState(byte newState) {
 			state = newState;
 		}
-		
-		public void setTempHasher(int[] hasher){
+
+		public void setTempHasher(int[] hasher) {
 			tempHasher = hasher;
 		}
-		
-		public int[] getTempHasher(){
+
+		public int[] getTempHasher() {
 			return tempHasher;
 		}
-		
-		public void clearTempHasher(){
+
+		public void clearTempHasher() {
 			tempHasher = null;
 		}
-		
-		public void setRealm(String realm){
+
+		public void setRealm(String realm) {
 			realmName = realm;
 		}
-		
-		public String getRealm(){
+
+		public String getRealm() {
 			return realmName;
 		}
 	}
