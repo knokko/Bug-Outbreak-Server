@@ -83,9 +83,13 @@ public class ProfileWebServer extends WebSocketServer {
 	public void onMessage(WebSocket conn, ByteBuffer message) {
 		byte[] bytes = new byte[message.capacity()];
 		message.get(bytes);
-		BitInput input = new ByteArrayBitInput(bytes);
 		Handler handler = conn.getAttachment();
-		PROTOCOL.process(input, handler);
+		try {
+			BitInput input = new ByteArrayBitInput(bytes);
+			PROTOCOL.process(input, handler);
+		} catch (Throwable t) {
+			handler.uglyStop("Caused exception: " + t.getMessage());
+		}
 	}
 
 	@Override

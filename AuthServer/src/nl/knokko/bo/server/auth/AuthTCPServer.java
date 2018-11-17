@@ -184,9 +184,7 @@ public class AuthTCPServer extends TCPServerSocket<State> {
 						output.addChar((char) AuthServer.getDataManager().getProfileServer().getPort());
 						output.addInts(key);
 						output.terminate();
-						System.out.println("The client should get enough information to perform a profile login");
-						System.out.println("Profile server port is " + profileHandler.getClient().getPort() + " or "
-								+ AuthServer.getDataManager().getProfileServer().getPort());
+						System.out.println("Profile server port is " + AuthServer.getDataManager().getProfileServer().getPort());
 					} else {
 						BitOutput output = handler.createOutput();
 						output.addNumber(ConnectionCode.StC.PROFILE_LOGIN_FAILED, ConnectionCode.StC.BITCOUNT, false);
