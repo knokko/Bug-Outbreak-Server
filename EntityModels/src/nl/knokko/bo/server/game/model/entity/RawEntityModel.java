@@ -29,8 +29,8 @@ import nl.knokko.util.bits.BitOutput;
 public class RawEntityModel {
 
 	/**
-	 * Amount of vertices is stored as int positions are stored in an int array
-	 * textureCoords are stored in a char array matrices are stored in a byte array
+	 * Amount of vertices is stored as int. Positions are stored in an int array.
+	 * TextureCoords are stored in a char array. Matrices are stored in a byte array.
 	 */
 	private static final byte ENCODING_IICB = -128;
 
@@ -69,13 +69,9 @@ public class RawEntityModel {
 		int textureIndex = 0;
 		for (int index = 0; index < vertices; index++) {
 			char x = input.readDirectChar();
-			if (x < 0)
-				throw new InvalidModelException("Invalid texture X: " + x);
 			if (x >= texture.getWidth())
 				throw new InvalidModelException("Invalid texture X: " + x);
 			char y = input.readDirectChar();
-			if (y < 0)
-				throw new InvalidModelException("Invalid texture Y: " + y);
 			if (y >= texture.getHeight())
 				throw new InvalidModelException("Invalid texture Y: " + y);
 			textureCoords[textureIndex++] = x;
