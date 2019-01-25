@@ -46,7 +46,7 @@ public class AuthServer {
 	public static void main(String[] args) {
 		console = new AuthConsole();
 		dataManager = new AuthDataManager(new File("auth"));
-		simpleRandom = new PseudoRandom();
+		simpleRandom = new PseudoRandom(PseudoRandom.Configuration.LEGACY);
 		dataManager.load();
 		new Thread(console).start();
 		// TODO add timer to update realm states and reset failed login attempts
