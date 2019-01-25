@@ -27,7 +27,7 @@ import java.net.InetAddress;
 
 import nl.knokko.util.bits.BitInput;
 import nl.knokko.util.bits.BitOutput;
-import nl.knokko.util.hashing.HashResult;
+import nl.knokko.util.hashing.result.HashResult;
 
 public class UserData {
 

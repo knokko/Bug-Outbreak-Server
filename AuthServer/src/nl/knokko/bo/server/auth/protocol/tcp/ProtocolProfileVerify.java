@@ -31,8 +31,8 @@ import nl.knokko.bo.server.auth.AuthTCPServer.State;
 import nl.knokko.bo.server.protocol.AuthProfileCode.StC;
 import nl.knokko.util.bits.BitInput;
 import nl.knokko.util.bits.BitOutput;
-import nl.knokko.util.hashing.HashResult;
 import nl.knokko.util.hashing.ServerHasher;
+import nl.knokko.util.hashing.result.HashResult;
 import nl.knokko.util.protocol.BitProtocol;
 import static nl.knokko.bo.server.auth.protocol.tcp.ProtocolProfileStart.denyStart;
 

@@ -31,7 +31,7 @@ import nl.knokko.bo.server.auth.data.UserData;
 import nl.knokko.bo.server.auth.protocol.web.ConnectionCode.StC;
 import nl.knokko.util.bits.BitInput;
 import nl.knokko.util.bits.BitOutput;
-import nl.knokko.util.hashing.HashResult;
+import nl.knokko.util.hashing.result.HashResult;
 import nl.knokko.util.protocol.BitProtocol;
 
 public class ProtocolRegister implements BitProtocol<AuthWebServer.Handler> {
