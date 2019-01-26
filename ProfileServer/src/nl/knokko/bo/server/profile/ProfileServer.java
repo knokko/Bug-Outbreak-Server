@@ -41,7 +41,7 @@ public class ProfileServer {
 		console = new ProfileConsole();
 		dataManager = new ProfileDataManager();
 		dataManager.load();
-		new Thread(console).start();// TODO finally test the profile server...
+		new Thread(console).start();
 		if (args.length > 0) {
 			try {
 				startConnection(InetAddress.getLocalHost().getHostAddress(), Integer.parseInt(args[0]), args[1],
