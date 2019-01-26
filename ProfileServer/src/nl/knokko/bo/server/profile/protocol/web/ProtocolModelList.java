@@ -26,7 +26,7 @@ package nl.knokko.bo.server.profile.protocol.web;
 import nl.knokko.bo.server.profile.ProfileServer;
 import nl.knokko.bo.server.profile.ProfileWebServer;
 import nl.knokko.bo.server.profile.data.ProfileEntityModel;
-import nl.knokko.bo.server.profile.data.UserData;
+import nl.knokko.bo.server.profile.data.ProfileUserData;
 import nl.knokko.util.bits.BitInput;
 import nl.knokko.util.bits.BitOutput;
 import nl.knokko.util.protocol.BitProtocol;
@@ -41,7 +41,7 @@ public class ProtocolModelList implements BitProtocol<ProfileWebServer.Handler> 
 			BitOutput output = handler.createOutput();
 			output.addNumber(WebCode.StC.GET_MODEL_LIST, WebCode.StC.BITCOUNT, false);
 			output.addChar((char) models.length);
-			output.addChar((char) UserData.MAX_MODELS);
+			output.addChar((char) ProfileUserData.MAX_MODELS);
 			for (ProfileEntityModel model : models) {
 				output.addJavaString(model.getName());
 			}

@@ -36,27 +36,23 @@ import nl.knokko.util.bits.BitInputStream;
 import nl.knokko.util.bits.BitOutputStream;
 
 import nl.knokko.bo.server.profile.ProfileServer;
+import nl.knokko.usermanager.UserDataManager;
 
-public class ProfileDataManager {
+public class ProfileDataManager extends UserDataManager<ProfileUserData> {
 
 	private final File baseDirectory;
-	private final File userDirectory;
 	private final File passwordDirectory;
-
-	private final UsersFile[] loadedFiles;
 
 	private int[] authPassword;
 
 	private boolean shouldSave;
 
 	public ProfileDataManager() {
+		super(ProfileUserData.class, new File("profile/users"), 500, 300);
 		baseDirectory = new File("profile");
-		userDirectory = new File(baseDirectory + "/users");
 		passwordDirectory = new File(baseDirectory + "/passwords");
 		baseDirectory.mkdirs();
-		userDirectory.mkdir();
 		passwordDirectory.mkdir();
-		loadedFiles = new UsersFile[256];
 		shouldSave = true;
 	}
 
@@ -65,19 +61,7 @@ public class ProfileDataManager {
 			ProfileServer.getConsole().println("Saving has been skipped");
 			return;
 		}
-		userDirectory.mkdirs();
-		for (int index = 0; index < loadedFiles.length; index++) {
-			try {
-				if (loadedFiles[index] != null) {
-					BitOutput output = new BitOutputStream(new FileOutputStream(getUsersFile(index)));
-					loadedFiles[index].save(output);
-					output.terminate();
-				}
-			} catch (IOException ioex) {
-				ProfileServer.getConsole().println(
-						"An IO error occured while saving users with index " + index + ": " + ioex.getMessage());
-			}
-		}
+		super.save();
 		passwordDirectory.mkdirs();
 		try {
 			BitOutput output = new BitOutputStream(new FileOutputStream(getAuthPasswordFile()));
@@ -89,20 +73,7 @@ public class ProfileDataManager {
 		}
 	}
 
-	public synchronized void load() {
-		for (int index = 0; index < loadedFiles.length; index++) {
-			File file = getUsersFile(index);
-			if (file.exists()) {
-				try {
-					BitInput input = new BitInputStream(new FileInputStream(file));
-					loadedFiles[index] = new UsersFile(input);
-					input.terminate();
-				} catch (IOException ioex) {
-					ProfileServer.getConsole().println(
-							"An IO error occured while loading users with index " + index + ": " + ioex.getMessage());
-				}
-			}
-		}
+	public void load() {
 		try {
 			BitInput input = new BitInputStream(new FileInputStream(getAuthPasswordFile()));
 			authPassword = input.readIntArray();
@@ -123,36 +94,8 @@ public class ProfileDataManager {
 		}
 	}
 
-	public UserData getUserData(long id) {
-		return getUsersData((byte) id).getUser(id);
-	}
-
-	private File getUsersFile(int index) {
-		return new File(userDirectory + "/" + index + ".users");
-	}
-
 	private File getAuthPasswordFile() {
 		return new File(passwordDirectory + "/auth.pw");
-	}
-
-	private synchronized UsersFile getUsersData(byte hash) {
-		int index = hash & 0xFF;
-		UsersFile uf = loadedFiles[index];
-		if (uf != null)
-			return uf;
-		File file = getUsersFile(index);
-		try {
-			BitInput input = new BitInputStream(new FileInputStream(file));
-			uf = new UsersFile(input);
-			input.terminate();
-			loadedFiles[index] = uf;
-			return uf;
-		} catch (IOException ioex) {
-			ProfileServer.getConsole().println("Creating new data for users with index " + index);
-			uf = new UsersFile();
-			loadedFiles[index] = uf;
-			return uf;
-		}
 	}
 
 	public int[] getAuthPassword() {

@@ -26,49 +26,63 @@ package nl.knokko.bo.server.profile.data;
 import nl.knokko.util.bits.BitInput;
 import nl.knokko.util.bits.BitOutput;
 import nl.knokko.bo.server.game.model.entity.EntityModel;
+import nl.knokko.usermanager.UserData;
 
-public class UserData {
+public class ProfileUserData extends UserData {
 
 	public static final int MAX_MODELS = 10;
-
-	static UserData load1(BitInput input) {
-		long id = input.readLong();
-		ProfileEntityModel[] models = new ProfileEntityModel[input.readInt()];
-		for (int index = 0; index < models.length; index++)
-			models[index] = ProfileEntityModel.load1(input);
-		return new UserData(id, models);
-	}
-
-	private final long id;
+	
+	private static final byte ENCODING_1 = 0;
 
 	private ProfileEntityModel[] models;
 
-	// doesn't need saving
+	// Fields that do not need saving
 
 	private boolean isLoggedIn;
+	
+	private final Object modelsLock;
 
-	UserData(long id) {
-		this.id = id;
+	public ProfileUserData(long id) {
+		super(id);
 		this.models = new ProfileEntityModel[0];
+		
+		this.isLoggedIn = false;
+		this.modelsLock = new Object();
+	}
+	
+	@Override
+	protected void saveData(BitOutput output) {
+		output.addByte(ENCODING_1);
+		save1(output);
+	}
+	
+	@Override
+	protected void loadData(BitInput input) {
+		byte encoding = input.readByte();
+		if (encoding == ENCODING_1) {
+			load1(input);
+		} else {
+			throw new IllegalArgumentException("Unknown encoding: " + encoding);
+		}
 	}
 
-	private UserData(long id, ProfileEntityModel[] models) {
-		this.id = id;
-		this.models = models;
-	}
-
-	public long getID() {
-		return id;
-	}
-
-	public synchronized void save1(BitOutput output) {
-		output.addLong(id);
+	private void save1(BitOutput output) {
+		
+		// Prevent annoying concurrency problems
+		ProfileEntityModel[] models = this.models;
 		output.addInt(models.length);
 		for (ProfileEntityModel model : models)
 			model.save1(output);
 	}
+	
+	private void load1(BitInput input) {
+		models = new ProfileEntityModel[input.readInt()];
+		for (int index = 0; index < models.length; index++)
+			models[index] = ProfileEntityModel.load1(input);
+	}
 
-	public synchronized ProfileEntityModel getModel(String name) {
+	public ProfileEntityModel getModel(String name) {
+		ProfileEntityModel[] models = this.models;
 		for (ProfileEntityModel model : models)
 			if (model.getName().equals(name))
 				return model;
@@ -88,20 +102,23 @@ public class UserData {
 		return models.length;
 	}
 
-	public synchronized boolean deleteModel(String name) {
-		for (int index = 0; index < models.length; index++) {
-			if (models[index].getName().equals(name)) {
-				ProfileEntityModel[] newModels = new ProfileEntityModel[models.length - 1];
-				System.arraycopy(models, 0, newModels, 0, index);
-				System.arraycopy(models, index + 1, newModels, index, newModels.length - index);
-				models = newModels;
-				return true;
+	public boolean deleteModel(String name) {
+		synchronized (modelsLock) {
+			ProfileEntityModel[] models = this.models;
+			for (int index = 0; index < models.length; index++) {
+				if (models[index].getName().equals(name)) {
+					ProfileEntityModel[] newModels = new ProfileEntityModel[models.length - 1];
+					System.arraycopy(models, 0, newModels, 0, index);
+					System.arraycopy(models, index + 1, newModels, index, newModels.length - index);
+					models = newModels;
+					return true;
+				}
 			}
+			return false;
 		}
-		return false;
 	}
 
-	public synchronized boolean changeModel(String name, EntityModel newModel) {
+	public boolean changeModel(String name, EntityModel newModel) {
 		for (ProfileEntityModel model : models) {
 			if (model.getName().equals(name)) {
 				model.setModel(newModel);
@@ -111,11 +128,14 @@ public class UserData {
 		return false;
 	}
 
-	public synchronized void addModel(ProfileEntityModel model) {
-		ProfileEntityModel[] newModels = new ProfileEntityModel[models.length + 1];
-		System.arraycopy(models, 0, newModels, 0, models.length);
-		newModels[models.length] = model;
-		models = newModels;
+	public void addModel(ProfileEntityModel model) {
+		synchronized (modelsLock) {
+			ProfileEntityModel[] models = this.models;
+			ProfileEntityModel[] newModels = new ProfileEntityModel[models.length + 1];
+			System.arraycopy(models, 0, newModels, 0, models.length);
+			newModels[models.length] = model;
+			this.models = newModels;
+		}
 	}
 
 	public boolean isLoggedIn() {

@@ -28,7 +28,7 @@ import nl.knokko.bo.server.game.model.entity.InvalidModelException;
 import nl.knokko.bo.server.profile.ProfileServer;
 import nl.knokko.bo.server.profile.ProfileWebServer;
 import nl.knokko.bo.server.profile.data.ProfileEntityModel;
-import nl.knokko.bo.server.profile.data.UserData;
+import nl.knokko.bo.server.profile.data.ProfileUserData;
 import nl.knokko.bo.server.profile.protocol.web.WebCode.StC;
 import nl.knokko.util.bits.BitInput;
 import nl.knokko.util.bits.BitOutput;
@@ -39,7 +39,7 @@ public class ProtocolChangeModel implements BitProtocol<ProfileWebServer.Handler
 	@Override
 	public void process(BitInput input, ProfileWebServer.Handler handler) {
 		if (handler.getState().isLoggedIn()) {
-			UserData data = ProfileServer.getDataManager().getUserData(handler.getState().getUserID());
+			ProfileUserData data = ProfileServer.getDataManager().getUserData(handler.getState().getUserID());
 			synchronized (data) {
 				ProfileEntityModel model = data.getModel(input.readJavaString(100));
 				if (model != null) {

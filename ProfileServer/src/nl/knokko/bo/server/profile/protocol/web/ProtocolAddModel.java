@@ -28,7 +28,7 @@ import nl.knokko.bo.server.game.model.entity.InvalidModelException;
 import nl.knokko.bo.server.profile.ProfileServer;
 import nl.knokko.bo.server.profile.ProfileWebServer;
 import nl.knokko.bo.server.profile.data.ProfileEntityModel;
-import nl.knokko.bo.server.profile.data.UserData;
+import nl.knokko.bo.server.profile.data.ProfileUserData;
 import nl.knokko.bo.server.profile.protocol.web.WebCode.StC;
 import nl.knokko.util.bits.BitInput;
 import nl.knokko.util.bits.BitOutput;
@@ -40,9 +40,9 @@ public class ProtocolAddModel implements BitProtocol<ProfileWebServer.Handler> {
 	public void process(BitInput input, ProfileWebServer.Handler handler) {
 		if (handler.getState().isLoggedIn()) {
 			String name = input.readJavaString(100);
-			UserData data = ProfileServer.getDataManager().getUserData(handler.getState().getUserID());
+			ProfileUserData data = ProfileServer.getDataManager().getUserData(handler.getState().getUserID());
 			synchronized (data) {
-				if (data.getModelAmount() < UserData.MAX_MODELS) {
+				if (data.getModelAmount() < ProfileUserData.MAX_MODELS) {
 					if (data.getModel(name) == null) {
 						try {
 							EntityModel model = new EntityModel(input);
