@@ -27,7 +27,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.InetAddress;
+import java.nio.file.Files;
 import java.util.Arrays;
 
 import nl.knokko.bo.server.auth.AuthServer;
@@ -38,6 +40,7 @@ import nl.knokko.util.bits.BitInputStream;
 import nl.knokko.util.bits.BitOutput;
 import nl.knokko.util.bits.BitOutputStream;
 import nl.knokko.util.bits.ByteArrayBitInput;
+import nl.knokko.util.bits.ByteArrayBitOutput;
 import nl.knokko.util.random.CrazyRandom;
 
 public class AuthDataManager {
@@ -287,9 +290,13 @@ public class AuthDataManager {
 		for (UsersFile usersFile : loadedFiles) {
 			if (usersFile != null) {
 				try {
-					BitOutput output = new BitOutputStream(new FileOutputStream(getUsersFileFor(usersFile.getHash())));
+					ByteArrayBitOutput output = new ByteArrayBitOutput(2000);
 					usersFile.save(output);
 					output.terminate();
+					OutputStream fileOutput = Files.newOutputStream(getUsersFileFor(usersFile.getHash()).toPath());
+					fileOutput.write(output.getBytes());
+					fileOutput.flush();
+					fileOutput.close();
 				} catch (IOException ioex) {
 					AuthServer.getConsole()
 							.println("Failed to save usersFile " + usersFile.getHash() + ": " + ioex.getMessage());
@@ -389,12 +396,7 @@ public class AuthDataManager {
 			File file = getUsersFileFor(hash);
 			if (file.exists()) {
 				try {
-					BitInput input;
-					if (file.length() <= Integer.MAX_VALUE)// I will assume this is the case, but I provide some backup
-															// anyway
-						input = ByteArrayBitInput.fromFile(file);
-					else
-						input = new BitInputStream(new FileInputStream(file));
+					BitInput input = ByteArrayBitInput.fromFile(file);
 					users = new UsersFile(hash, input);
 					input.terminate();
 				} catch (IOException ioex) {

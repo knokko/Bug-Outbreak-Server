@@ -37,7 +37,7 @@ public class ProtocolLogin1 implements BitProtocol<AuthWebServer.Handler> {
 	@Override
 	public void process(BitInput input, AuthWebServer.Handler handler) {
 		if (handler.getState().getAuthState() == State.AUTH_STATE_NOTHING) {
-			String username = input.readJavaString(ConnectionCode.MAX_USERNAME_LENGTH);
+			String username = input.readString(ConnectionCode.MAX_USERNAME_LENGTH);
 			UserData account = AuthServer.getDataManager().getUserData(username);
 			BitOutput output = handler.createOutput();
 			if (account != null) {
@@ -49,12 +49,13 @@ public class ProtocolLogin1 implements BitProtocol<AuthWebServer.Handler> {
 							output.addNumber(StC.LoginFail1.UNDER_ATTACK, StC.LoginFail1.BITCOUNT, false);
 							output.terminate();
 						} else {
+							int[] halfServerSeed = input.readInts(24);
+							int[] halfClientSeed = AuthServer.getSimpleRandom().nextInts(24);
 							output.addNumber(StC.LOGIN_1, StC.BITCOUNT, false);
-							output.addJavaString(account.getSalt());
-							int[] tempHasher = AuthServer.getSimpleRandom().nextInts(4);
-							output.addInts(tempHasher);// the temp hasher doesn't have to be secret
+							output.addString(account.getSalt());
+							output.addInts(halfClientSeed);
 							output.terminate();
-							handler.getState().setLoggingIn(account.getID(), tempHasher);
+							handler.getState().setLoggingIn(account.getID(), halfClientSeed, halfServerSeed);
 						}
 					} else {
 						output.addNumber(StC.LOGIN_1_FAILED, StC.BITCOUNT, false);

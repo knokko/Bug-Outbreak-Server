@@ -32,6 +32,7 @@ import nl.knokko.util.bits.BitInput;
 import nl.knokko.util.bits.BitOutput;
 import nl.knokko.util.bits.ByteArrayBitInput;
 import nl.knokko.util.bits.ByteArrayBitOutput;
+import nl.knokko.util.hashing.encryptor.Encryptor;
 
 import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
@@ -71,10 +72,13 @@ public class AuthWebServer extends WebSocketServer {
 
 	@Override
 	public void onMessage(WebSocket conn, ByteBuffer message) {
+		Handler handler = conn.getAttachment();
 		byte[] bytes = new byte[message.capacity()];
 		message.get(bytes);
+		if (handler.decryptor != null) {
+			bytes = handler.decryptor.decrypt(bytes);
+		}
 		BitInput input = new ByteArrayBitInput(bytes);
-		Handler handler = conn.getAttachment();
 		try {
 			PROTOCOL.process(input, handler);
 		} catch (Exception ex) {
@@ -98,10 +102,21 @@ public class AuthWebServer extends WebSocketServer {
 		private final WebSocket ws;
 
 		private final State state;
+		
+		private Encryptor encryptor;
+		private Encryptor decryptor;
 
 		public Handler(WebSocket ws) {
 			this.ws = ws;
 			state = new State();
+		}
+		
+		public void setEncryptor(Encryptor newEncryptor) {
+			encryptor = newEncryptor;
+		}
+		
+		public void setDecryptor(Encryptor newDecryptor) {
+			decryptor = newDecryptor;
 		}
 
 		public State getState() {
@@ -128,7 +143,13 @@ public class AuthWebServer extends WebSocketServer {
 
 			@Override
 			public void terminate() {
-				ws.send(getBytes());
+				super.terminate();
+				byte[] payload = getBytes();
+				if (encryptor != null) {
+					ws.send(encryptor.encrypt(payload));
+				} else {
+					ws.send(getBytes());
+				}
 			}
 		}
 	}
@@ -145,7 +166,9 @@ public class AuthWebServer extends WebSocketServer {
 		private byte authState = AUTH_STATE_NOTHING;
 		private byte actionState = ACTION_STATE_NOTHING;
 
-		private int[] tempLoginHasher;
+		private int[] halfClientSeed;
+		private int[] halfServerSeed;
+		
 		private int[] profileLoginKey;
 
 		private long accountID = -1;
@@ -164,28 +187,32 @@ public class AuthWebServer extends WebSocketServer {
 
 		public void clearAuthState() {
 			authState = AUTH_STATE_NOTHING;
-			tempLoginHasher = null;
+			halfClientSeed = null;
+			halfServerSeed = null;
 			accountID = -1;
 		}
 
-		public void setLoggingIn(long id, int[] hasher) {
+		public void setLoggingIn(long id, int[] halfClientSeed, int[] halfServerSeed) {
 			authState = AUTH_STATE_LOGGING_IN;
 			accountID = id;
-			tempLoginHasher = hasher;
+			this.halfClientSeed = halfClientSeed;
+			this.halfServerSeed = halfServerSeed;
+		}
+		
+		public int[] getHalfClientSeed() {
+			return halfClientSeed;
+		}
+		
+		public int[] getHalfServerSeed() {
+			return halfServerSeed;
 		}
 
 		public void setLoggedIn() {
 			authState = AUTH_STATE_LOGGED_IN;
-			tempLoginHasher = null;
-		}
-
-		public void setRegistered(long id) {
-			authState = AUTH_STATE_LOGGED_IN;
-			accountID = id;
-		}
-
-		public int[] getTempHasher() {
-			return tempLoginHasher;
+			
+			// Those have been passed to the encryptor and decryptor, so are no longer needed
+			halfClientSeed = null;
+			halfServerSeed = null;
 		}
 
 		public long getAccountID() {

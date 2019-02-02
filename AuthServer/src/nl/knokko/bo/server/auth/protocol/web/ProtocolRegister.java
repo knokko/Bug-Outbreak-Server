@@ -31,35 +31,53 @@ import nl.knokko.bo.server.auth.data.UserData;
 import nl.knokko.bo.server.auth.protocol.web.ConnectionCode.StC;
 import nl.knokko.util.bits.BitInput;
 import nl.knokko.util.bits.BitOutput;
-import nl.knokko.util.hashing.result.HashResult;
 import nl.knokko.util.protocol.BitProtocol;
 
 public class ProtocolRegister implements BitProtocol<AuthWebServer.Handler> {
 
 	public void process(BitInput input, AuthWebServer.Handler handler) {
+		
+		// Only allow registration if the client comes from the nothing state
 		if (handler.getState().getAuthState() == State.AUTH_STATE_NOTHING) {
 			BitOutput output = handler.createOutput();
+			
+			// No funny concurrency
 			synchronized (AuthServer.getDataManager().getRegisterLock()) {
 				IPData ipData = AuthServer.getDataManager().getIPData(handler.getAddress());
+				
+				// Only 10 accounts per address
 				if (ipData.getCreatedAccounts() < 10) {
-					String username = input.readJavaString(ConnectionCode.MAX_USERNAME_LENGTH);
+					String username = input.readString(ConnectionCode.MAX_USERNAME_LENGTH);
+					
+					// Only 1 account per username
 					if (AuthServer.getDataManager().getUserData(username) == null) {
-						String salt = input.readJavaString(ConnectionCode.MAX_USERNAME_LENGTH + 20);
-						HashResult encryptedClientHashResult = new HashResult(input.readInts(20));
-						UserData account = new UserData(username, salt, encryptedClientHashResult,
-								handler.getAddress());
-						AuthServer.getDataManager().register(account);
+						
+						// Read the data from the client
+						String salt = input.readString(ConnectionCode.MAX_USERNAME_LENGTH + 20);
+						byte[] testPayload = input.readBytes(300);
+						int[] serverStartSeed = input.readInts(24);
+						int[] clientSessionSeed = input.readInts(24);
+						int[] serverSessionSeed = input.readInts(24);
+						
+						// Register account
+						AuthServer.getDataManager().register(new UserData(username, salt, testPayload, serverStartSeed, clientSessionSeed, serverSessionSeed, handler.getAddress()));
 						ipData.increaseCreatedAccounts();
-						handler.getState().setRegistered(account.getID());
+						
+						// Reset auth state so that the user can log in with the new account
+						handler.getState().clearAuthState();
 						output.addNumber(StC.REGISTER, StC.BITCOUNT, false);
 						output.terminate();
 					} else {
+						
+						// Name is already in use
 						output.addNumber(StC.REGISTER_FAILED, StC.BITCOUNT, false);
 						output.addNumber(StC.RegisterFail.NAME_IN_USE, StC.RegisterFail.BITCOUNT, false);
 						output.terminate();
 						handler.getState().clearAuthState();
 					}
 				} else {
+					
+					// Already maximum number of accounts on this ip address
 					output.addNumber(StC.REGISTER_FAILED, StC.BITCOUNT, false);
 					output.addNumber(StC.RegisterFail.IP_LIMIT_EXCEEDED, StC.RegisterFail.BITCOUNT, false);
 					output.terminate();

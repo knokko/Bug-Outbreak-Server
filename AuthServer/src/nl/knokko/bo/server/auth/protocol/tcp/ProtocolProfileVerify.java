@@ -31,8 +31,6 @@ import nl.knokko.bo.server.auth.AuthTCPServer.State;
 import nl.knokko.bo.server.protocol.AuthProfileCode.StC;
 import nl.knokko.util.bits.BitInput;
 import nl.knokko.util.bits.BitOutput;
-import nl.knokko.util.hashing.ServerHasher;
-import nl.knokko.util.hashing.result.HashResult;
 import nl.knokko.util.protocol.BitProtocol;
 import static nl.knokko.bo.server.auth.protocol.tcp.ProtocolProfileStart.denyStart;
 
@@ -49,6 +47,8 @@ public class ProtocolProfileVerify implements BitProtocol<AuthTCPServer.Handler>
 						if (!AuthServer.getDataManager().getProfileServer().isOnline()) {
 							int[] tempHasher = handler.getState().getTempHasher();
 							int[] fromClient = input.readInts(50);
+							// TODO fix this later
+							/*
 							HashResult fromServer = ServerHasher
 									.tempHash(AuthServer.getDataManager().getProfileServer().getPassword(), tempHasher);
 							if (Arrays.equals(fromClient, fromServer.get())) {
@@ -64,6 +64,7 @@ public class ProtocolProfileVerify implements BitProtocol<AuthTCPServer.Handler>
 							} else {
 								denyStart(handler, StC.RefuseStart.WRONG_PASSWORD);
 							}
+							*/
 						} else {
 							denyStart(handler, StC.RefuseStart.ALREADY_STARTED);
 						}

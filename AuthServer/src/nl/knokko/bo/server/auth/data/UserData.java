@@ -27,14 +27,16 @@ import java.net.InetAddress;
 
 import nl.knokko.util.bits.BitInput;
 import nl.knokko.util.bits.BitOutput;
-import nl.knokko.util.hashing.result.HashResult;
 
 public class UserData {
 
 	private String username;
-	private String salt;
+	private final String salt;
 
-	private int[] encryptedHash;
+	private final byte[] testPayload;
+	private final int[] serverStartSeed;
+	private final int[] clientSessionSeed;
+	private final int[] serverSessionSeed;
 
 	private long id;
 	private final byte[] creationIP;
@@ -46,26 +48,38 @@ public class UserData {
 	private int failedAttempts;
 
 	public UserData(BitInput input) {
-		username = input.readJavaString();
-		salt = input.readJavaString();
-		encryptedHash = input.readInts(20);
+		username = input.readString();
+		salt = input.readString();
+		testPayload = input.readBytes(300);
+		serverStartSeed = input.readInts(24);
+		clientSessionSeed = input.readInts(24);
+		serverSessionSeed = input.readInts(24);
+
 		creationIP = input.readByteArray();
 		id = input.readLong();
 		op = input.readBoolean();
 	}
 
-	public UserData(String username, String salt, HashResult encryptedHashResult, InetAddress address) {
+	public UserData(String username, String salt, byte[] testPayload, int[] serverStartSeed, int[] clientSessionSeed,
+			int[] serverSessionSeed, InetAddress address) {
 		this.username = username;
 		this.salt = salt;
-		this.encryptedHash = encryptedHashResult.get();
+		this.testPayload = testPayload;
+		this.serverStartSeed = serverStartSeed;
+		this.clientSessionSeed = clientSessionSeed;
+		this.serverSessionSeed = serverSessionSeed;
+
 		this.creationIP = address.getAddress();
 		this.id = -1;
 	}
 
-	public synchronized void save(BitOutput output) {
-		output.addJavaString(username);
-		output.addJavaString(salt);
-		output.addInts(encryptedHash);
+	public void save(BitOutput output) {
+		output.addString(username);
+		output.addString(salt);
+		output.addBytes(testPayload);
+		output.addInts(serverStartSeed);
+		output.addInts(clientSessionSeed);
+		output.addInts(serverSessionSeed);
 		output.addByteArray(creationIP);
 		if (id == -1)
 			throw new IllegalStateException("The account " + username + " doesn't have an id!");
@@ -73,26 +87,38 @@ public class UserData {
 		output.addBoolean(op);
 	}
 
-	public synchronized void assignID(long id) {
+	public void assignID(long id) {
 		if (this.id != -1)
 			throw new IllegalStateException("Can't change the id of " + username + " because it already has an id");
 		this.id = id;
 	}
 
-	public synchronized long getID() {
+	public long getID() {
 		return id;
 	}
 
-	public synchronized String getUsername() {
+	public String getUsername() {
 		return username;
 	}
 
-	public synchronized String getSalt() {
+	public String getSalt() {
 		return salt;
 	}
 
-	public synchronized HashResult getEncryptedHash() {
-		return new HashResult(encryptedHash);
+	public byte[] getTestPayload() {
+		return testPayload;
+	}
+	
+	public int[] getServerStartSeed() {
+		return serverStartSeed;
+	}
+	
+	public int[] getClientSessionSeed() {
+		return clientSessionSeed;
+	}
+	
+	public int[] getServerSessionSeed() {
+		return serverSessionSeed;
 	}
 
 	/**
@@ -102,7 +128,7 @@ public class UserData {
 		return creationIP;
 	}
 
-	public synchronized boolean isLoggedIn() {
+	public boolean isLoggedIn() {
 		return loggedIn;
 	}
 
@@ -112,31 +138,31 @@ public class UserData {
 	 * @return true if the user was not yet logged in or false if the user was
 	 *         already logged in
 	 */
-	public synchronized void setLoggedIn() {
+	public void setLoggedIn() {
 		loggedIn = true;
 	}
 
-	public synchronized void setLoggedOut() {
+	public void setLoggedOut() {
 		loggedIn = false;
 	}
 
 	/**
 	 * @return The amount of failed login attempts that happened today
 	 */
-	public synchronized int getFailedAttempts() {
+	public int getFailedAttempts() {
 		return failedAttempts;
 	}
 
-	public synchronized void increaseFailedAttempts() {
+	public void increaseFailedAttempts() {
 		if (failedAttempts < Integer.MAX_VALUE)// Failing too often won't help attackers
 			failedAttempts++;
 	}
 
-	public synchronized boolean isOP() {
+	public boolean isOP() {
 		return op;
 	}
 
-	public synchronized void setOP(boolean newOP) {
+	public void setOP(boolean newOP) {
 		op = newOP;
 	}
 }
