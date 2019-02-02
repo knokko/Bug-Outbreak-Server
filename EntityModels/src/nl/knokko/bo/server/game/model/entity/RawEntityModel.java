@@ -99,7 +99,7 @@ public class RawEntityModel {
 	}
 
 	private void saveIICB(BitOutput output) {
-		output.ensureExtraCapacityCapacity(8 + 32 + matrices.length * (3 * 4 + 2 * 2 + 1 * 1));
+		output.ensureExtraCapacity(8 + 32 + matrices.length * (3 * 4 + 2 * 2 + 1 * 1));
 		output.addDirectByte(ENCODING_IICB);
 		output.addDirectInt(matrices.length);
 		for (int pos : positions)
